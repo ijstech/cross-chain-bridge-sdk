@@ -1,5 +1,7 @@
 {
     "name": "@ijstech/cross-chain-bridge",
-    "version": "0.1.0",
-    "types": "types"
+    "version": "0.1.1",
+    "main": "lib",
+    "types": "types/index.d.ts",
+    "typings": "types/index.d.ts"
 }
