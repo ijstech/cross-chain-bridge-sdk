@@ -3,8 +3,22 @@ var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
 var __export = (target, all) => {
   __markAsModule(target);
@@ -26,6 +40,8 @@ var __toModule = (module2) => {
 // src/index.ts
 __export(exports, {
   Backer: () => Backer,
+  BridgeVault: () => BridgeVault,
+  BridgeVaultTrollRegistry: () => BridgeVaultTrollRegistry,
   Contracts: () => contracts_exports,
   CrossChainMulti: () => CrossChainMulti,
   CrossChainSingle: () => CrossChainSingle,
@@ -6748,7 +6764,7 @@ var SideChainVoting = class {
     ];
   }
   async getHash(params) {
-    let hash = this.wallet.web3.utils.soliditySha3({ t: "uint", v: await this.wallet.getChainId() }, { t: "address", v: this.votingExecutor.address }, { t: "bytes32[]", v: params.params }, { t: "uint", v: "0x" + params.nonce.toString(16) }).toString();
+    let hash = this.wallet.web3.utils.soliditySha3({ t: "uint", v: await this.wallet.getChainId() }, { t: "address", v: this.votingExecutor.address }, { t: "bytes32[]", v: params.params }, { t: "uint", v: "0x" + params.nonce.toString(16) });
     return hash;
   }
   static parseExecuteEventParams(params) {
@@ -6881,8 +6897,9 @@ var BridgeVault = class {
     return import_eth_wallet26.Utils.fromDecimals(await this._bridgeVault.allowance(params));
   }
   async approve(params) {
-    params.amount = import_eth_wallet26.Utils.toDecimals(params.amount);
-    let receipt = await this._bridgeVault.approve(params);
+    let clone = __spreadValues({}, params);
+    clone.amount = import_eth_wallet26.Utils.toDecimals(clone.amount);
+    let receipt = await this._bridgeVault.approve(clone);
     let event = this._bridgeVault.parseApprovalEvent(receipt)[0];
     event.value = import_eth_wallet26.Utils.fromDecimals(event.value);
     return event;
@@ -6907,9 +6924,11 @@ var BridgeVault = class {
   async balanceOf(account) {
     return import_eth_wallet26.Utils.fromDecimals(await this._bridgeVault.balanceOf(account));
   }
-  async cancelOrderWei(params) {
+  async cancelOrder(params) {
+    let clone = __spreadValues({}, params);
     let assetDecimals = await (await this.asset).decimals;
-    let receipt = await this._bridgeVault.cancelOrder(params);
+    clone.protocolFee = import_eth_wallet26.Utils.toDecimals(clone.protocolFee, assetDecimals);
+    let receipt = await this._bridgeVault.cancelOrder(clone);
     let event = this._bridgeVault.parseOrderCanceledEvent(receipt)[0];
     event.newProtocolFeeBalance = import_eth_wallet26.Utils.fromDecimals(event.newProtocolFeeBalance, assetDecimals);
     event.newImbalance = import_eth_wallet26.Utils.fromDecimals(event.newImbalance, assetDecimals);
@@ -6930,8 +6949,9 @@ var BridgeVault = class {
     });
   }
   async decreaseAllowance(params) {
-    params.subtractedValue = import_eth_wallet26.Utils.toDecimals(params.subtractedValue);
-    let receipt = await this._bridgeVault.decreaseAllowance(params);
+    let clone = __spreadValues({}, params);
+    clone.subtractedValue = import_eth_wallet26.Utils.toDecimals(clone.subtractedValue);
+    let receipt = await this._bridgeVault.decreaseAllowance(clone);
     let event = this._bridgeVault.parseApprovalEvent(receipt)[0];
     event.value = import_eth_wallet26.Utils.fromDecimals(event.value);
     return event;
@@ -6967,20 +6987,23 @@ var BridgeVault = class {
     return this._bridgeVault.hashOrder(params);
   }
   async hashSwapParams(params) {
+    let clone = __spreadValues({}, params);
+    clone.order = __spreadValues({}, clone.order);
     let assetDecimals = await (await this.asset).decimals;
-    params.order.inAmount = import_eth_wallet26.Utils.toDecimals(params.order.inAmount, assetDecimals);
-    let chainId = typeof params.order.peerChain === "number" ? params.order.peerChain : params.order.peerChain.toNumber();
-    let outTokenDecimals = this.getTokenDecimals(chainId, params.order.outToken);
-    params.order.minOutAmount = import_eth_wallet26.Utils.toDecimals(params.order.minOutAmount, outTokenDecimals);
-    return this._bridgeVault.hashSwapParams(params);
+    clone.order.inAmount = import_eth_wallet26.Utils.toDecimals(clone.order.inAmount, assetDecimals);
+    let chainId = typeof clone.order.peerChain === "number" ? clone.order.peerChain : clone.order.peerChain.toNumber();
+    let outTokenDecimals = this.getTokenDecimals(chainId, clone.order.outToken);
+    clone.order.minOutAmount = import_eth_wallet26.Utils.toDecimals(clone.order.minOutAmount, outTokenDecimals);
+    return this._bridgeVault.hashSwapParams(clone);
   }
   async hashVoidOrderParams(orderId) {
     return this._bridgeVault.hashVoidOrderParams(orderId);
   }
   async hashWithdrawParams(params) {
+    let clone = __spreadValues({}, params);
     let assetDecimals = await (await this.asset).decimals;
-    params.amount = import_eth_wallet26.Utils.toDecimals(params.amount, assetDecimals);
-    return this._bridgeVault.hashWithdrawParams(params);
+    clone.amount = import_eth_wallet26.Utils.toDecimals(clone.amount, assetDecimals);
+    return this._bridgeVault.hashWithdrawParams(clone);
   }
   get imbalance() {
     return (async () => {
@@ -6988,8 +7011,9 @@ var BridgeVault = class {
     })();
   }
   async increaseAllowance(params) {
-    params.addedValue = import_eth_wallet26.Utils.toDecimals(params.addedValue);
-    let receipt = await this._bridgeVault.increaseAllowance(params);
+    let clone = __spreadValues({}, params);
+    clone.addedValue = import_eth_wallet26.Utils.toDecimals(clone.addedValue);
+    let receipt = await this._bridgeVault.increaseAllowance(clone);
     let event = this._bridgeVault.parseApprovalEvent(receipt)[0];
     event.value = import_eth_wallet26.Utils.fromDecimals(event.value);
     return event;
@@ -7011,12 +7035,13 @@ var BridgeVault = class {
     return this._bridgeVault.govToken();
   }
   async newOrder(order) {
+    let clone = __spreadValues({}, order);
     let assetDecimals = await (await this.asset).decimals;
-    order.inAmount = import_eth_wallet26.Utils.toDecimals(order.inAmount, assetDecimals);
-    let peerChainId = typeof order.peerChain === "number" ? order.peerChain : order.peerChain.toNumber();
-    let outTokenDecimals = this.getTokenDecimals(peerChainId, order.outToken);
-    order.minOutAmount = import_eth_wallet26.Utils.toDecimals(order.minOutAmount, outTokenDecimals);
-    let receipt = await this._bridgeVault.newOrder(order);
+    clone.inAmount = import_eth_wallet26.Utils.toDecimals(clone.inAmount, assetDecimals);
+    let peerChainId = typeof clone.peerChain === "number" ? clone.peerChain : clone.peerChain.toNumber();
+    let outTokenDecimals = this.getTokenDecimals(peerChainId, clone.outToken);
+    clone.minOutAmount = import_eth_wallet26.Utils.toDecimals(clone.minOutAmount, outTokenDecimals);
+    let receipt = await this._bridgeVault.newOrder(clone);
     let event = this._bridgeVault.parseNewOrderEvent(receipt)[0];
     event.order.inAmount = import_eth_wallet26.Utils.fromDecimals(event.order.inAmount, assetDecimals);
     event.order.minOutAmount = import_eth_wallet26.Utils.fromDecimals(event.order.minOutAmount, outTokenDecimals);
@@ -7075,8 +7100,8 @@ var BridgeVault = class {
     return this._bridgeVault.parseNewOrderEvent(receipt)[0];
   }
   async orderAmendments(params) {
-    let assetDecimals = await (await this.asset).decimals;
     let order = await this._bridgeVault.orderAmendments({ param1: params.orderId, param2: params.amendment });
+    let assetDecimals = await (await this.asset).decimals;
     let chainId = typeof order.peerChain === "number" ? order.peerChain : order.peerChain.toNumber();
     let outTokenDecimals = this.getTokenDecimals(chainId, order.outToken);
     let minOutAmount = import_eth_wallet26.Utils.fromDecimals(order.minOutAmount, outTokenDecimals);
@@ -7107,8 +7132,8 @@ var BridgeVault = class {
     return this._bridgeVault.orderStatus(orderId);
   }
   async orders(orderId) {
-    let assetDecimals = await (await this.asset).decimals;
     let order = await this._bridgeVault.orders(orderId);
+    let assetDecimals = await (await this.asset).decimals;
     let chainId = typeof order.peerChain === "number" ? order.peerChain : order.peerChain.toNumber();
     let outTokenDecimals = this.getTokenDecimals(chainId, order.outToken);
     let minOutAmount = import_eth_wallet26.Utils.fromDecimals(order.minOutAmount, outTokenDecimals);
@@ -7148,9 +7173,11 @@ var BridgeVault = class {
     transferEvent.value = import_eth_wallet26.Utils.fromDecimals(transferEvent.value, assetDecimals);
     return { rebalanceEvent, transferEvent };
   }
-  async rebalancerWithdrawWei(params) {
+  async rebalancerWithdraw(params) {
+    let clone = __spreadValues({}, params);
     let assetDecimals = await (await this.asset).decimals;
-    let receipt = await this._bridgeVault.rebalancerWithdraw(params);
+    clone.assetAmount = import_eth_wallet26.Utils.toDecimals(clone.assetAmount, assetDecimals);
+    let receipt = await this._bridgeVault.rebalancerWithdraw(clone);
     let rebalanceEvent = this._bridgeVault.parseRebalanceEvent(receipt)[0];
     rebalanceEvent.amount = import_eth_wallet26.Utils.fromDecimals(rebalanceEvent.amount, assetDecimals);
     rebalanceEvent.newImbalance = import_eth_wallet26.Utils.fromDecimals(rebalanceEvent.newImbalance, assetDecimals);
@@ -7159,9 +7186,10 @@ var BridgeVault = class {
     return { rebalanceEvent, transferEvent };
   }
   async removeLiquidity(params) {
+    let clone = __spreadValues({}, params);
     let assetDecimals = await (await this.asset).decimals;
-    params.assetAmount = import_eth_wallet26.Utils.toDecimals(params.assetAmount, assetDecimals);
-    let receipt = await this._bridgeVault.removeLiquidity(params);
+    clone.assetAmount = import_eth_wallet26.Utils.toDecimals(clone.assetAmount, assetDecimals);
+    let receipt = await this._bridgeVault.removeLiquidity(clone);
     let event = this._bridgeVault.parseRemoveLiquidityEvent(receipt)[0];
     event.amount = import_eth_wallet26.Utils.fromDecimals(event.amount, assetDecimals);
     event.newPendingWithdrawal = import_eth_wallet26.Utils.fromDecimals(event.newPendingWithdrawal, assetDecimals);
@@ -7193,21 +7221,30 @@ var BridgeVault = class {
     return event;
   }
   async requestAmendOrder(params) {
+    let clone = __spreadValues({}, params);
+    clone.order = __spreadValues({}, clone.order);
     let assetDecimals = await (await this.asset).decimals;
-    let order = params.order;
+    let order = clone.order;
     order.inAmount = import_eth_wallet26.Utils.toDecimals(order.inAmount, assetDecimals);
     let peerChainId = typeof order.peerChain === "number" ? order.peerChain : order.peerChain.toNumber();
     let outTokenDecimals = this.getTokenDecimals(peerChainId, order.outToken);
     order.minOutAmount = import_eth_wallet26.Utils.toDecimals(order.minOutAmount, outTokenDecimals);
-    let receipt = await this._bridgeVault.requestAmendOrder({ orderId: params.orderId, order });
+    let receipt = await this._bridgeVault.requestAmendOrder({ orderId: clone.orderId, order });
     let amendOrderEvent = this._bridgeVault.parseAmendOrderRequestEvent(receipt)[0];
     amendOrderEvent.order.inAmount = import_eth_wallet26.Utils.fromDecimals(amendOrderEvent.order.inAmount, assetDecimals);
     amendOrderEvent.order.minOutAmount = import_eth_wallet26.Utils.fromDecimals(amendOrderEvent.order.minOutAmount, outTokenDecimals);
     return amendOrderEvent;
   }
-  async swapWei(params) {
+  async swap(params) {
+    let clone = __spreadValues({}, params);
+    clone.order = __spreadValues({}, clone.order);
     let assetDecimals = await (await this.asset).decimals;
-    let receipt = await this._bridgeVault.swap(params);
+    let chainId = await this._bridgeVault.wallet.getChainId();
+    let outTokenDecimals = this.getTokenDecimals(chainId, params.order.outToken);
+    clone.order.inAmount = import_eth_wallet26.Utils.toDecimals(clone.order.inAmount, assetDecimals);
+    clone.order.minOutAmount = import_eth_wallet26.Utils.toDecimals(clone.order.minOutAmount, outTokenDecimals);
+    clone.protocolFee = import_eth_wallet26.Utils.toDecimals(clone.protocolFee, assetDecimals);
+    let receipt = await this._bridgeVault.swap(clone);
     let swapEvent = this._bridgeVault.parseSwapEvent(receipt)[0];
     swapEvent.newImbalance = import_eth_wallet26.Utils.fromDecimals(swapEvent.newImbalance, assetDecimals);
     swapEvent.newLpAssetBalance = import_eth_wallet26.Utils.fromDecimals(swapEvent.newLpAssetBalance, assetDecimals);
@@ -7244,15 +7281,17 @@ var BridgeVault = class {
     })();
   }
   async transfer(params) {
-    params.amount = import_eth_wallet26.Utils.toDecimals(params.amount);
-    let receipt = await this._bridgeVault.transfer(params);
+    let clone = __spreadValues({}, params);
+    clone.amount = import_eth_wallet26.Utils.toDecimals(clone.amount);
+    let receipt = await this._bridgeVault.transfer(clone);
     let event = this._bridgeVault.parseTransferEvent(receipt)[0];
     event.value = import_eth_wallet26.Utils.fromDecimals(event.value);
     return event;
   }
   async transferFrom(params) {
-    params.amount = import_eth_wallet26.Utils.toDecimals(params.amount);
-    let receipt = await this._bridgeVault.transferFrom(params);
+    let clone = __spreadValues({}, params);
+    clone.amount = import_eth_wallet26.Utils.toDecimals(clone.amount);
+    let receipt = await this._bridgeVault.transferFrom(clone);
     let transfer = this._bridgeVault.parseTransferEvent(receipt)[0];
     transfer.value = import_eth_wallet26.Utils.fromDecimals(transfer.value);
     let approval = this._bridgeVault.parseApprovalEvent(receipt)[0];
@@ -7681,6 +7720,17 @@ var GeneralTroll = class {
   getChain(chainId) {
     return this.crosschain.crossChainContracts.sideChain[chainId];
   }
+  async getTargetOrderId2(params) {
+    let srcVault = this.crosschain.crossChainContracts.sideChain[params.sourceChain].bridgeVault[params.srcToken];
+    let order = await srcVault.orders(params.orderId);
+    let owner = await srcVault.orderOwner(params.orderId);
+    let targetChain = order.peerChain.toNumber();
+    let inToken = this.crosschain.tokenPair[params.sourceChain][(await srcVault.asset).address][targetChain];
+    let targetVault = this.crosschain.crossChainContracts.sideChain[targetChain].bridgeVault[inToken];
+    let wallet = this.crosschain.wallets[targetChain];
+    let targetOrderId = wallet.web3.utils.soliditySha3({ t: "address", v: owner }, { t: "uint256", v: await wallet.getChainId() }, { t: "address", v: targetVault.address }, { t: "uint256", v: params.sourceChain.toString() }, { t: "uint256", v: params.orderId.toString() });
+    return { targetChain, targetVault: targetVault.address, targetOrderId };
+  }
   async getTargetOrderId(order) {
     let wallet = this.crosschain.wallets[order.targetChain];
     let chainId = order.targetChain;
@@ -7693,61 +7743,29 @@ var GeneralTroll = class {
     let signatures = await wallet.signMessage(wallet.web3.utils.soliditySha3({ t: "address", v: params.address }));
     return signatures;
   }
-  async hashSwapExactTokensForTokens(params) {
+  async hashOrderForSigning(params) {
     let wallet = this.crosschain.wallets[params.order.targetChain];
     let chainId = params.order.targetChain;
     let chain = this.getChain(chainId);
     let vault = chain.bridgeVault[params.order.inToken];
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: vault.address }, { t: "bytes32", v: import_eth_wallet28.Utils.stringToBytes32(await this.getTargetOrderId(params.order)) }, { t: "uint", v: params.order.amendment.toFixed() }, { t: "uint", v: params.order.inAmount.toFixed() }, { t: "address", v: params.order.outToken }, { t: "uint", v: params.order.minOutAmount.toFixed() }, { t: "uint", v: params.order.protocolFee.toFixed() }, { t: "address[]", v: params.pair }, { t: "address", v: params.order.to }, { t: "uint", v: params.order.expire.toFixed() }).toString();
+    let decimals = await (await vault.asset).decimals;
+    let outTokenDecimals = params.order.outToken == import_eth_wallet28.Utils.nullAddress ? this.crosschain.wrappedTokens[chainId].decimals : this.crosschain.tokenList[chainId].find((e) => e.address == params.order.outToken).decimals;
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: vault.address }, { t: "bytes32", v: import_eth_wallet28.Utils.stringToBytes32(await this.getTargetOrderId(params.order)) }, { t: "uint", v: params.order.amendment.toFixed() }, { t: "uint", v: import_eth_wallet28.Utils.toDecimals(params.order.inAmount, decimals).toFixed() }, { t: "address", v: params.order.outToken }, { t: "uint", v: import_eth_wallet28.Utils.toDecimals(params.order.minOutAmount, outTokenDecimals).toFixed() }, { t: "uint", v: import_eth_wallet28.Utils.toDecimals(params.order.protocolFee, decimals).toFixed() }, { t: "address[]", v: params.pair }, { t: "address", v: params.order.to }, { t: "uint", v: params.order.expire.toFixed() });
     return hash;
   }
-  async signOrder(params) {
-    let wallet = this.crosschain.wallets[params.order.targetChain];
-    let chainId = params.order.targetChain;
-    let orderId = await this.getTargetOrderId(params.order);
-    let _params = {
-      orderId,
-      amendment: params.order.amendment || 0,
-      order: {
-        peerChain: params.order.sourceChain,
-        inAmount: params.order.inAmount,
-        outToken: params.order.outToken,
-        minOutAmount: params.order.minOutAmount,
-        to: params.order.to,
-        expire: params.order.expire
-      },
-      protocolFee: params.order.protocolFee,
-      pair: params.pair
-    };
-    let hash = await this.hashSwapExactTokensForTokens({ order: params.order, pair: params.pair });
-    let signature = await wallet.signMessage(hash);
-    return signature;
-  }
-  async hashCancelOrder(cancelOrder) {
+  async hashCancelOrderForSigning(cancelOrder) {
     let wallet = this.crosschain.wallets[cancelOrder.sourceChainId];
     let chain = this.getChain(cancelOrder.sourceChainId);
-    let vault = chain.bridgeVault[cancelOrder.srcToken].address;
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: vault }, { t: "uint", v: cancelOrder.orderId.toFixed() }, { t: "uint8", v: cancelOrder.canceledByOrderOwner ? 1 : 0 }, { t: "uint", v: cancelOrder.protocolFee.toFixed() }).toString();
+    let vault = chain.bridgeVault[cancelOrder.srcToken];
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: vault.address }, { t: "uint", v: cancelOrder.orderId.toString() }, { t: "uint8", v: cancelOrder.canceledByOrderOwner ? 1 : 0 }, { t: "uint", v: import_eth_wallet28.Utils.toDecimals(cancelOrder.protocolFee.toFixed(), await (await vault.asset).decimals).toFixed() });
     return hash;
   }
-  async signCancelOrder(cancelOrder) {
-    let wallet = this.crosschain.wallets[cancelOrder.sourceChainId];
-    let hash = await this.hashCancelOrder(cancelOrder);
-    let signature = await wallet.signMessage(hash);
-    return signature;
-  }
-  async hashUnstakeBondRequest(params) {
+  async hashUnstakeBondRequestForSigning(params) {
     let wallet = this.crosschain.wallets[params.chainId];
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: params.event._event.address }, { t: "address", v: params.event.backer }, { t: "uint", v: params.event.trollProfileIndex.toFixed() }, { t: "uint", v: import_eth_wallet28.Utils.toDecimals(params.event.shares).toFixed() }, { t: "uint", v: "0x" + params.nonce.toString(16) }).toString();
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: params.event._event.address }, { t: "address", v: params.event.backer }, { t: "uint", v: params.event.trollProfileIndex.toFixed() }, { t: "uint", v: import_eth_wallet28.Utils.toDecimals(params.event.shares).toFixed() }, { t: "uint", v: "0x" + params.nonce.toString(16) });
     return hash;
   }
-  async signUnstakeBondRequest(params) {
-    let wallet = this.crosschain.wallets[params.chainId];
-    let hash = await this.hashUnstakeBondRequest(params);
-    let signature = await wallet.signMessage(hash);
-    return signature;
-  }
-  async hashRebalancerWithdraw(params) {
+  async hashRebalancerWithdrawForSigning(params) {
     let chain = this.getChain(params.chainId);
     let to = await chain.configStore.rebalancer();
     let wallet = this.crosschain.wallets[params.chainId];
@@ -7755,30 +7773,10 @@ var GeneralTroll = class {
     let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: vault.address }, { t: "address", v: to }, { t: "uint256", v: import_eth_wallet28.Utils.toDecimals(params.assetAmount, await (await vault.asset).decimals).toString() }, { t: "uint256", v: "0x" + params.nonce.toString(16) });
     return hash;
   }
-  async signRebalancerWithdraw(params) {
-    let hash = await this.hashRebalancerWithdraw(params);
-    let wallet = this.crosschain.wallets[params.chainId];
-    if (!wallet) {
-      throw new Error("invalid chain id");
-    }
-    let signatures = await wallet.signMessage(hash);
-    return signatures;
-  }
-  async hashVoidOrder(order) {
-    let chain = this.getChain(order.targetChain);
-    let wallet = this.crosschain.wallets[order.targetChain];
-    let _orderId = await this.getTargetOrderId(order);
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: chain.bridgeVault[order.inToken].address }, { t: "bytes32", v: _orderId });
+  async hashVoidOrderForSigning(params) {
+    let wallet = this.crosschain.wallets[params.targetChain];
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: params.targetChain }, { t: "address", v: params.targetVault }, { t: "bytes32", v: params.targetOrderId });
     return hash;
-  }
-  async signVoidOrder(order) {
-    let hash = await this.hashVoidOrder(order);
-    let wallet = this.crosschain.wallets[order.targetChain];
-    if (!wallet) {
-      throw new Error("invalid chain id");
-    }
-    let signatures = await wallet.signMessage(hash);
-    return signatures;
   }
 };
 
@@ -7826,24 +7824,15 @@ var Troll = class extends GeneralTroll {
     let count = await vaultRegistry.transactionsCount;
     return last + gap <= count || count < gap;
   }
-  async hashAddTroll(params) {
+  async hashAddTrollForSigning(params) {
     let chain = this.crosschain.crossChainContracts.sideChain[params.chainId];
     let wallet = this.crosschain.wallets[params.chainId];
     if (!wallet) {
       throw new Error("invalid chain id");
     }
     let troll = await this.crosschain.crossChainContracts.mainChain.trollRegistry.trollProfiles(params.addTrollEvent.trollProfileIndex);
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: chain.trollRegistry.address }, { t: "uint", v: params.addTrollEvent.trollProfileIndex.toString() }, { t: "address", v: troll.troll }, { t: "uint8", v: troll.trollType.toNumber() == 1 ? 1 : 0 }, { t: "uint", v: "0x" + params.nonce.toString(16) }).toString();
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint", v: await wallet.getChainId() }, { t: "address", v: chain.trollRegistry.address }, { t: "uint", v: params.addTrollEvent.trollProfileIndex.toString() }, { t: "address", v: troll.troll }, { t: "uint8", v: troll.trollType.toNumber() == 1 ? 1 : 0 }, { t: "uint", v: "0x" + params.nonce.toString(16) });
     return hash;
-  }
-  async signAddTroll(params) {
-    let hash = await this.hashAddTroll(params);
-    let wallet = this.crosschain.wallets[params.chainId];
-    if (!wallet) {
-      throw new Error("invalid chain id");
-    }
-    let signatures = await wallet.signMessage(hash);
-    return signatures;
   }
   async addTrollSideChain(params) {
     let chain = this.crosschain.crossChainContracts.sideChain[params.chainId];
@@ -7864,11 +7853,9 @@ var Troll = class extends GeneralTroll {
     let inTokenAddress = this.crosschain.tokenPair[sourceChain][srcToken.address][targetChain];
     let inToken = new import_eth_wallet29.Erc20(this.crosschain.wallets[targetChain], inTokenAddress);
     let inAmount = new import_eth_wallet29.BigNumber(order.inAmount);
-    if (!raw)
-      inAmount = import_eth_wallet29.Utils.toDecimals(inAmount, await srcToken.decimals);
-    let dp = await inToken.decimals - await srcToken.decimals;
-    if (dp)
-      inAmount = import_eth_wallet29.Utils.toDecimals(inAmount, dp).dp(0, import_eth_wallet29.BigNumber.ROUND_DOWN);
+    if (raw)
+      inAmount = import_eth_wallet29.Utils.fromDecimals(inAmount, await srcToken.decimals);
+    inAmount = inAmount.dp(await inToken.decimals, import_eth_wallet29.BigNumber.ROUND_DOWN);
     let outToken;
     if (order.outToken == import_eth_wallet29.Utils.nullAddress) {
       outToken = this.crosschain.wrappedTokens[targetChain];
@@ -7880,12 +7867,12 @@ var Troll = class extends GeneralTroll {
     }
     let outTokenDecimals = outToken ? outToken.decimals : 18;
     let minOutAmount = new import_eth_wallet29.BigNumber(order.minOutAmount);
-    if (!raw)
-      minOutAmount = import_eth_wallet29.Utils.toDecimals(minOutAmount, outTokenDecimals);
-    let protocolFee = inAmount.times(this.config.protocolFeeRate).dp(0);
+    if (raw)
+      minOutAmount = import_eth_wallet29.Utils.fromDecimals(minOutAmount, outTokenDecimals);
+    let protocolFee = inAmount.times(this.config.protocolFeeRate).dp(await inToken.decimals, import_eth_wallet29.BigNumber.ROUND_DOWN);
     let imbalance = await this.crosschain.crossChainContracts.sideChain[targetChain].bridgeVault[inToken.address]._bridgeVault.imbalance();
     imbalance = imbalance.minus(order.inAmount);
-    let imbalanceFee = imbalance.lt(0) ? imbalance.times(this.config.imbalanceFeeRate).dp(0, import_eth_wallet29.BigNumber.ROUND_DOWN) : new import_eth_wallet29.BigNumber(0);
+    let imbalanceFee = imbalance.lt(0) ? imbalance.times(this.config.imbalanceFeeRate).dp(await inToken.decimals, import_eth_wallet29.BigNumber.ROUND_DOWN) : new import_eth_wallet29.BigNumber(0);
     if (imbalanceFee.eq(0))
       imbalanceFee = new import_eth_wallet29.BigNumber(0);
     let _order = {
@@ -7906,32 +7893,32 @@ var Troll = class extends GeneralTroll {
     };
     return _order;
   }
-  async prepareNewOrderForSigning(sourceChain, orderEvent, raw) {
-    let _order = await this._prepareNewOrder(sourceChain, orderEvent._event.address, {
-      peerChain: orderEvent.order.peerChain,
-      inAmount: orderEvent.order.inAmount,
-      outToken: orderEvent.order.outToken,
-      minOutAmount: orderEvent.order.minOutAmount,
-      to: orderEvent.order.to,
-      expire: orderEvent.order.expire
-    }, orderEvent.owner, orderEvent.orderId, raw);
+  async prepareNewOrder(params) {
+    let _order = await this._prepareNewOrder(params.sourceChain, params.orderEvent._event.address, {
+      peerChain: params.orderEvent.order.peerChain,
+      inAmount: params.orderEvent.order.inAmount,
+      outToken: params.orderEvent.order.outToken,
+      minOutAmount: params.orderEvent.order.minOutAmount,
+      to: params.orderEvent.order.to,
+      expire: params.orderEvent.order.expire
+    }, params.orderEvent.owner, params.orderEvent.orderId, params.raw);
     return _order;
   }
-  async prepareAmendOrderRequestForSigning(sourceChain, amendOrderRequestEvent, raw) {
-    let srcVault = this.vaults[sourceChain][amendOrderRequestEvent._event.address];
-    let owner = await srcVault.orderOwner(amendOrderRequestEvent.orderId);
-    let _order = await this._prepareNewOrder(sourceChain, amendOrderRequestEvent._event.address, {
-      peerChain: amendOrderRequestEvent.order.peerChain,
-      inAmount: amendOrderRequestEvent.order.inAmount,
-      outToken: amendOrderRequestEvent.order.outToken,
-      minOutAmount: amendOrderRequestEvent.order.minOutAmount,
-      to: amendOrderRequestEvent.order.to,
-      expire: amendOrderRequestEvent.order.expire
-    }, owner, amendOrderRequestEvent.orderId, raw);
-    _order.amendment = amendOrderRequestEvent.amendment.toNumber();
+  async prepareAmendOrder(params) {
+    let srcVault = this.vaults[params.sourceChain][params.amendOrderRequestEvent._event.address];
+    let owner = await srcVault.orderOwner(params.amendOrderRequestEvent.orderId);
+    let _order = await this._prepareNewOrder(params.sourceChain, params.amendOrderRequestEvent._event.address, {
+      peerChain: params.amendOrderRequestEvent.order.peerChain,
+      inAmount: params.amendOrderRequestEvent.order.inAmount,
+      outToken: params.amendOrderRequestEvent.order.outToken,
+      minOutAmount: params.amendOrderRequestEvent.order.minOutAmount,
+      to: params.amendOrderRequestEvent.order.to,
+      expire: params.amendOrderRequestEvent.order.expire
+    }, owner, params.amendOrderRequestEvent.orderId, params.raw);
+    _order.amendment = params.amendOrderRequestEvent.amendment.toNumber();
     return _order;
   }
-  async prepareCancelOrderForSigning(params) {
+  async prepareCancelOrder(params) {
     let targetChain = this.getChain(params.targetChainId);
     let inToken = await targetChain.bridgeVault[params.event._event.address].asset;
     let srcChainId = params.event.sourceChainId.toNumber();
@@ -7939,10 +7926,10 @@ var Troll = class extends GeneralTroll {
     let srcChain = this.getChain(srcChainId);
     let srcVault = srcChain.bridgeVault[srcToken];
     let order = await srcChain.bridgeVault[srcVault.address].orders(params.event.orderId);
-    let protocolFee = import_eth_wallet29.Utils.toDecimals(order.inAmount, await (await srcVault.asset).decimals).times(this.config.protocolFeeRate).dp(0);
+    let protocolFee = order.inAmount.times(this.config.protocolFeeRate).dp(await (await srcVault.asset).decimals, import_eth_wallet29.BigNumber.ROUND_DOWN);
     return { sourceChainId: parseInt(params.event.sourceChainId.toString()), srcToken, orderId: params.event.orderId, owner: params.event.owner, canceledByOrderOwner: true, protocolFee };
   }
-  async prepareCancelOrderForSigningFromUnexecuteOrder(params) {
+  async prepareCancelOrderFromUnexecuteOrder(params) {
     let srcChain = this.getChain(params.srcChainId);
     let srcVault = srcChain.bridgeVault[params.srcToken].address;
     let owner = await srcChain.bridgeVault[srcVault].orderOwner(params.orderId);
@@ -7970,13 +7957,13 @@ var Troll = class extends GeneralTroll {
         expire: params.order.expire
       }
     };
-    let event = await vault.swapWei(_params);
+    let event = await vault.swap(_params);
     return event;
   }
   async cancelOrder(params) {
     let chain = this.getChain(params.cancelOrder.sourceChainId);
     let srcVault = chain.bridgeVault[params.cancelOrder.srcToken];
-    let event = await srcVault.cancelOrderWei({ signatures: params.signatures, orderId: params.cancelOrder.orderId, canceledByOrderOwner: params.cancelOrder.canceledByOrderOwner, protocolFee: params.cancelOrder.protocolFee });
+    let event = await srcVault.cancelOrder({ signatures: params.signatures, orderId: params.cancelOrder.orderId, canceledByOrderOwner: params.cancelOrder.canceledByOrderOwner, protocolFee: params.cancelOrder.protocolFee });
     return event;
   }
   async unstakeApprove(params) {
@@ -7989,48 +7976,39 @@ var Troll = class extends GeneralTroll {
     let receipt = await vaultRegistry.unstakeApprove({ signatures: params.signatures, backer: params.event.backer, trollProfileIndex: params.event.trollProfileIndex, shares: params.event.shares, nonce: params.nonce });
     return receipt;
   }
-  async hashUpdateTroll(params) {
+  async hashUpdateTrollForSigning(params) {
+    let wallet = this.crosschain.wallets[params.chainId];
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: this.crosschain.crossChainContracts.sideChain[params.chainId].trollRegistry.address }, { t: "uint256", v: params.event.trollProfileIndex.toString() }, { t: "address", v: params.event.newTroll }, { t: "uint256", v: params.event._event.transactionHash });
+    return hash;
+  }
+  async updateTrollSideChain(params) {
+    let chain = this.crosschain.crossChainContracts.sideChain[params.chainId];
+    if (!chain) {
+      throw new Error("Invalid chainId");
+    }
+    let wallet = this.crosschain.wallets[params.chainId];
+    let registry = chain.trollRegistry;
+    let receipt = await registry.updateTroll({ signatures: params.signatures, trollProfileIndex: params.event.trollProfileIndex, newTroll: params.event.newTroll, nonce: new import_eth_wallet29.BigNumber(params.event._event.transactionHash) });
+    let event = registry.parseAddTrollEvent(receipt)[0];
+    return event;
+  }
+  async hashRemoveTrollForSigning(params) {
     let wallet = this.crosschain.wallets[params.chainId];
     let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: this.crosschain.crossChainContracts.sideChain[params.chainId].trollRegistry.address }, { t: "uint256", v: params.trollProfileIndex.toString() }, { t: "address", v: params.newTroll }, { t: "uint256", v: "0x" + params.nonce.toString(16) });
     return hash;
   }
-  async hashRemoveTroll(params) {
+  async hashUnlockTrollForSigning(params) {
     let wallet = this.crosschain.wallets[params.chainId];
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: this.crosschain.crossChainContracts.sideChain[params.chainId].trollRegistry.address }, { t: "uint256", v: params.trollProfileIndex.toString() }, { t: "address", v: params.newTroll }, { t: "uint256", v: "0x" + params.nonce.toString(16) });
+    let decimals = await this.crosschain.oswap[params.chainId].decimals;
+    let penalty = Object.values(params.penalties).map((e) => import_eth_wallet29.Utils.toDecimals(e, decimals));
+    let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: this.crosschain.crossChainContracts.sideChain[params.chainId].trollRegistry.address }, { t: "uint256", v: params.trollProfileIndex.toString() }, { t: "uint8", v: params.unlock ? 1 : 0 }, { t: "address[]", v: Object.keys(params.penalties) }, { t: "uint256[]", v: penalty }, { t: "uint256", v: "0x" + params.nonce.toString(16) });
     return hash;
-  }
-  async hashUnlockTroll(params) {
-    let wallet = this.crosschain.wallets[params.chainId];
-    let vaults = this.crosschain.crossChainContracts.sideChain[params.chainId].bridgeVault;
-    let penalty = [];
-    for (let i = 0; i < params.penalty.length; i++) {
-      penalty.push(import_eth_wallet29.Utils.toDecimals(params.penalty[i], await (await vaults[params.vaultRegistry[i]].asset).decimals));
-    }
-    let hash = wallet.web3.utils.soliditySha3({ t: "uint256", v: await wallet.getChainId() }, { t: "address", v: this.crosschain.crossChainContracts.sideChain[params.chainId].trollRegistry.address }, { t: "uint256", v: params.trollProfileIndex.toString() }, { t: "uint8", v: params.unlock ? 1 : 0 }, { t: "address[]", v: params.vaultRegistry }, { t: "uint256[]", v: penalty }, { t: "uint256", v: params.nonce.toString() });
-    return hash;
-  }
-  async signUnlockTroll(params) {
-    let _params = {
-      chainId: params.chainId,
-      trollProfileIndex: params.trollProfileIndex,
-      unlock: params.unlock,
-      vaultRegistry: Object.keys(params.penalties),
-      penalty: Object.values(params.penalties),
-      nonce: params.nonce
-    };
-    let hash = await this.hashUnlockTroll(_params);
-    let wallet = this.crosschain.wallets[_params.chainId];
-    if (!wallet) {
-      throw new Error("invalid chain id");
-    }
-    let signatures = await wallet.signMessage(hash);
-    return signatures;
   }
   async unlockSuperTroll(params) {
     let penalty = [];
-    let vaults = this.crosschain.crossChainContracts.sideChain[params.chainId].bridgeVault;
+    let decimals = await this.crosschain.oswap[params.chainId].decimals;
     for (let vault in params.penalties) {
-      penalty.push(import_eth_wallet29.Utils.toDecimals(params.penalties[vault], await (await vaults[vault].asset).decimals));
+      penalty.push(import_eth_wallet29.Utils.toDecimals(params.penalties[vault], decimals));
     }
     let registry = this.crosschain.crossChainContracts.sideChain[params.chainId].trollRegistry;
     let receipt = await registry.unlockSuperTroll({
@@ -8043,11 +8021,8 @@ var Troll = class extends GeneralTroll {
     });
     return registry.parseUnlockSuperTrollEvent(receipt);
   }
-  async signVotingExecution(params) {
-    let wallet = this.crosschain.wallets[params.chainId];
-    let hash = await this.crosschain.crossChainContracts.sideChain[params.chainId].voting.getHash({ params: params.params, nonce: params.nonce });
-    let signature = await wallet.signMessage(hash);
-    return signature;
+  hashVotingExecutionForSigning(params) {
+    return this.crosschain.crossChainContracts.sideChain[params.chainId].voting.getHash({ params: params.params, nonce: params.nonce });
   }
   executeVoting(params) {
     return this.crosschain.crossChainContracts.sideChain[params.chainId].votingExecutor.execute(params);
@@ -8055,18 +8030,17 @@ var Troll = class extends GeneralTroll {
   async rebalancerWithdraw(params) {
     let chain = this.getChain(params.chainId);
     let vault = chain.bridgeVault[params.asset];
-    let event = await vault.rebalancerWithdrawWei({
+    let event = await vault.rebalancerWithdraw({
       signatures: params.signatures,
-      assetAmount: import_eth_wallet29.Utils.toDecimals(params.assetAmount, await (await vault.asset).decimals),
+      assetAmount: params.assetAmount,
       nonce: params.nonce
     });
     return event;
   }
   async voidOrder(params) {
     let chain = this.getChain(params.order.targetChain);
-    let vault = chain.bridgeVault[params.order.inToken];
-    let _orderId = await this.getTargetOrderId(params.order);
-    let event = vault.voidOrder({ signatures: params.signatures, orderId: _orderId });
+    let vault = chain.bridgeVault[params.order.targetVault];
+    let event = vault.voidOrder({ signatures: params.signatures, orderId: params.order.targetOrderId });
     return event;
   }
 };
@@ -8087,6 +8061,19 @@ var Owner = class {
     let registry = chain.trollRegistry;
     let receipt = await registry.addTroll(params);
     let event = registry.parseAddTrollEvent(receipt)[0];
+    return event;
+  }
+  async updateTroll(params) {
+    let chain = this.crosschain.mainChain;
+    if (!chain) {
+      throw new Error("not on main chain");
+    }
+    if (this.crosschain.chains.mainChain != this.crosschain.chainId) {
+      throw new Error("not on main chain");
+    }
+    let registry = chain.trollRegistry;
+    let receipt = await registry.updateTroll(params);
+    let event = registry.parseUpdateTrollEvent(receipt)[0];
     return event;
   }
 };

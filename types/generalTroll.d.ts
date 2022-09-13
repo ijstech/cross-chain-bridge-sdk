@@ -10,6 +10,14 @@ export interface CancelOrder {
     canceledByOrderOwner: boolean;
     protocolFee: number | BigNumber;
 }
+export interface VoidOrder {
+    sourceChain: number;
+    srcToken: string;
+    orderId: number;
+    targetChain: number;
+    targetVault: string;
+    targetOrderId: string;
+}
 export interface Config {
     protocolFeeRate: number | BigNumber;
     imbalanceFeeRate: number | BigNumber;
@@ -32,43 +40,35 @@ export declare class GeneralTroll {
         returnFalseIfBlocked: boolean;
     }): Promise<boolean>;
     protected getChain(chainId: number): import("./crossChain").ISideChain;
+    getTargetOrderId2(params: {
+        sourceChain: number;
+        srcToken: string;
+        orderId: number;
+    }): Promise<{
+        targetChain: number;
+        targetVault: string;
+        targetOrderId: string;
+    }>;
     getTargetOrderId(order: Order): Promise<string>;
     signAddress(params: {
         chainId: number;
         address: string;
     }): Promise<string>;
-    hashSwapExactTokensForTokens(params: {
+    hashOrderForSigning(params: {
         order: Order;
         pair: string[];
     }): Promise<string>;
-    signOrder(params: {
-        order: Order;
-        pair: string[];
-    }): Promise<string>;
-    hashCancelOrder(cancelOrder: CancelOrder): Promise<string>;
-    signCancelOrder(cancelOrder: CancelOrder): Promise<string>;
-    hashUnstakeBondRequest(params: {
+    hashCancelOrderForSigning(cancelOrder: CancelOrder): Promise<string>;
+    hashUnstakeBondRequestForSigning(params: {
         chainId: number;
         event: OSWAP_BridgeVaultTrollRegistry.UnstakeRequestEvent;
         nonce: number | BigNumber;
     }): Promise<string>;
-    signUnstakeBondRequest(params: {
-        chainId: number;
-        event: OSWAP_BridgeVaultTrollRegistry.UnstakeRequestEvent;
-        nonce: number | BigNumber;
-    }): Promise<string>;
-    hashRebalancerWithdraw(params: {
+    hashRebalancerWithdrawForSigning(params: {
         chainId: number;
         asset: string;
         assetAmount: number | BigNumber;
         nonce: number | BigNumber;
     }): Promise<string>;
-    signRebalancerWithdraw(params: {
-        chainId: number;
-        asset: string;
-        assetAmount: number | BigNumber;
-        nonce: number | BigNumber;
-    }): Promise<string>;
-    hashVoidOrder(order: Order): Promise<string>;
-    signVoidOrder(order: Order): Promise<string>;
+    hashVoidOrderForSigning(params: VoidOrder): Promise<string>;
 }

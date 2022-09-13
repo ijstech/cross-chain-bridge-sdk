@@ -1,8 +1,7 @@
 import { TransactionReceipt, BigNumber } from '@ijstech/eth-wallet';
 import { OSWAP_BridgeVault, OSWAP_BridgeVaultTrollRegistry, OSWAP_MainChainTrollRegistry, OSWAP_SideChainTrollRegistry, ERC20 as xErc20 } from './contracts';
 import { Order } from './crossChain';
-import { INewOrder } from "./wrappers/bridgeVault";
-import { GeneralTroll, CancelOrder } from './generalTroll';
+import { GeneralTroll, CancelOrder, VoidOrder } from './generalTroll';
 export declare class Troll extends GeneralTroll {
     _isSuperTroll(params: {
         chainId: number;
@@ -22,12 +21,7 @@ export declare class Troll extends GeneralTroll {
         chainId: number;
         asset: string;
     }): Promise<boolean>;
-    hashAddTroll(params: {
-        chainId: number;
-        addTrollEvent: OSWAP_MainChainTrollRegistry.StakeSuperTollEvent | OSWAP_MainChainTrollRegistry.StakeGeneralTollEvent;
-        nonce: number | BigNumber;
-    }): Promise<string>;
-    signAddTroll(params: {
+    hashAddTrollForSigning(params: {
         chainId: number;
         addTrollEvent: OSWAP_MainChainTrollRegistry.StakeSuperTollEvent | OSWAP_MainChainTrollRegistry.StakeGeneralTollEvent;
         nonce: number | BigNumber;
@@ -38,14 +32,22 @@ export declare class Troll extends GeneralTroll {
         event: OSWAP_MainChainTrollRegistry.StakeSuperTollEvent | OSWAP_MainChainTrollRegistry.StakeGeneralTollEvent;
         nonce: number | BigNumber;
     }): Promise<OSWAP_SideChainTrollRegistry.AddTrollEvent>;
-    _prepareNewOrder(sourceChain: number, vaultAddress: string, order: INewOrder, owner: string, orderId: number | BigNumber, raw?: boolean): Promise<Order>;
-    prepareNewOrderForSigning(sourceChain: number, orderEvent: OSWAP_BridgeVault.NewOrderEvent, raw?: boolean): Promise<Order>;
-    prepareAmendOrderRequestForSigning(sourceChain: number, amendOrderRequestEvent: OSWAP_BridgeVault.AmendOrderRequestEvent, raw?: boolean): Promise<Order>;
-    prepareCancelOrderForSigning(params: {
+    private _prepareNewOrder;
+    prepareNewOrder(params: {
+        sourceChain: number;
+        orderEvent: OSWAP_BridgeVault.NewOrderEvent;
+        raw?: boolean;
+    }): Promise<Order>;
+    prepareAmendOrder(params: {
+        sourceChain: number;
+        amendOrderRequestEvent: OSWAP_BridgeVault.AmendOrderRequestEvent;
+        raw?: boolean;
+    }): Promise<Order>;
+    prepareCancelOrder(params: {
         targetChainId: number;
         event: OSWAP_BridgeVault.RequestCancelOrderEvent;
     }): Promise<CancelOrder>;
-    prepareCancelOrderForSigningFromUnexecuteOrder(params: {
+    prepareCancelOrderFromUnexecuteOrder(params: {
         srcChainId: number;
         srcToken: string;
         orderId: number | BigNumber;
@@ -76,27 +78,22 @@ export declare class Troll extends GeneralTroll {
         event: OSWAP_BridgeVaultTrollRegistry.UnstakeRequestEvent;
         nonce: number | BigNumber;
     }): Promise<OSWAP_BridgeVaultTrollRegistry.UnstakeApprovalEvent>;
-    hashUpdateTroll(params: {
+    hashUpdateTrollForSigning(params: {
+        chainId: number;
+        event: OSWAP_MainChainTrollRegistry.UpdateTrollEvent;
+    }): Promise<string>;
+    updateTrollSideChain(params: {
+        signatures: string[];
+        chainId: number;
+        event: OSWAP_MainChainTrollRegistry.UpdateTrollEvent;
+    }): Promise<OSWAP_SideChainTrollRegistry.UpdateTrollEvent>;
+    hashRemoveTrollForSigning(params: {
         chainId: number;
         trollProfileIndex: number | BigNumber;
         newTroll: string;
         nonce: number | BigNumber;
     }): Promise<string>;
-    hashRemoveTroll(params: {
-        chainId: number;
-        trollProfileIndex: number | BigNumber;
-        newTroll: string;
-        nonce: number | BigNumber;
-    }): Promise<string>;
-    hashUnlockTroll(params: {
-        chainId: number;
-        trollProfileIndex: number | BigNumber;
-        unlock: boolean;
-        vaultRegistry: string[];
-        penalty: (number | BigNumber)[];
-        nonce: number | BigNumber;
-    }): Promise<string>;
-    signUnlockTroll(params: {
+    hashUnlockTrollForSigning(params: {
         chainId: number;
         trollProfileIndex: number | BigNumber;
         unlock: boolean;
@@ -115,7 +112,7 @@ export declare class Troll extends GeneralTroll {
         };
         nonce: number | BigNumber;
     }): Promise<OSWAP_SideChainTrollRegistry.UnlockSuperTrollEvent[]>;
-    signVotingExecution(params: {
+    hashVotingExecutionForSigning(params: {
         chainId: number;
         params: string[];
         nonce: number | BigNumber;
@@ -138,6 +135,6 @@ export declare class Troll extends GeneralTroll {
     }>;
     voidOrder(params: {
         signatures: string[];
-        order: Order;
+        order: VoidOrder;
     }): Promise<OSWAP_BridgeVault.VoidOrderEvent>;
 }

@@ -52,7 +52,7 @@ export declare class BridgeVault {
         assetTokenOracle: string;
     }): Promise<BigNumber>;
     balanceOf(account: string): Promise<BigNumber>;
-    cancelOrderWei(params: {
+    cancelOrder(params: {
         signatures: string[];
         orderId: number | BigNumber;
         canceledByOrderOwner: boolean;
@@ -147,7 +147,7 @@ export declare class BridgeVault {
         rebalanceEvent: OSWAP_BridgeVault.RebalanceEvent;
         transferEvent: xErc20.TransferEvent;
     }>;
-    rebalancerWithdrawWei(params: {
+    rebalancerWithdraw(params: {
         signatures: string[];
         assetAmount: number | BigNumber;
         nonce: number | BigNumber;
@@ -175,7 +175,7 @@ export declare class BridgeVault {
         orderId: number | BigNumber;
         order: IOrderParam;
     }): Promise<OSWAP_BridgeVault.AmendOrderRequestEvent>;
-    swapWei(params: {
+    swap(params: {
         signatures: string[];
         owner: string;
         orderId: number | BigNumber;

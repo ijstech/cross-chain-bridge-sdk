@@ -11,3 +11,5 @@ export * from "./owner";
 export * from "./backer";
 export * from "./liquidityProvider";
 export * from "./trader";
+export * from "./wrappers/bridgeVault";
+export * from "./wrappers/bridgeVaultTrollRegistry";
