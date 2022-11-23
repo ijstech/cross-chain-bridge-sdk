@@ -1,34 +1,7 @@
 {
-    "name": "@openswap/cross-chain-bridge-sdk",
-    "version": "0.1.0",
-    "description": "",
+    "name": "@ijstech/cross-chain-bridge",
+    "version": "0.1.1",
+    "main": "lib",
     "types": "types/index.d.ts",
-    "typings": "types/index.d.ts",
-    "main": "lib/index.js",
-    "plugin": "dist/index.js",
-    "scripts": {
-      "build": "rm -rf lib && rm -rf dist && rm -rf types && npm run build:contracts && npm run build:lib && npm run build:dist",
-      "build:contracts": "rm -rf src/contracts && sol2ts solconfig.json",
-      "build:dist": "npx @ijstech/compiler",
-      "build:lib": "tsc"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "dependencies": {
-      "@ijstech/eth-contract": "^0.1.4"
-    },
-    "devDependencies": {
-      "@chainlink/contracts": "0.2.2",
-      "@openzeppelin/contracts": "^4.8.0",
-      "@ijstech/cli": "^0.1.23",
-      "@ijstech/compiler": "^0.1.15",
-      "@ijstech/eth-wallet": "^0.1.24",
-      "@types/mocha": "9.1.1",
-      "@types/node": "18.8.4",
-      "ganache": "7.5.0",
-      "mocha": "10.0.0",
-      "ts-node": "10.9.1",
-      "typescript": "4.8.4"
-    }
+    "typings": "types/index.d.ts"
 }
